@@ -1,0 +1,22 @@
+https://mpitutorial.com/tutorials/mpi-send-and-receive/
+
+mpiexec -f machinefile -n 10 ./examples/cpi
+mpiexec -n <number> ./examples/cpi
+
+MPI_Send( 
+    void* data,
+    int count,
+    MPI_Datatype datatype,
+    int destination,
+    int tag,
+    MPI_Comm communicator)
+
+MPI_Recv(
+    void* data,
+    int count,
+    MPI_Datatype datatype,
+    int source,
+    int tag,
+    MPI_Comm communicator,
+    MPI_Status* status)
+
