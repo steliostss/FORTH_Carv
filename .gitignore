@@ -1,4 +1,6 @@
 # hey
 
+.vscode
 test.txt
 MPI/notes.txt
+MPI/exec/*
