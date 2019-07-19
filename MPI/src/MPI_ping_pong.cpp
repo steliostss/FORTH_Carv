@@ -1,5 +1,4 @@
 #include <iostream>
-#include <unistd.h>
 #include "/usr/include/mpi/mpi.h"
 
 #define PING_PONG_LIMIT 20
