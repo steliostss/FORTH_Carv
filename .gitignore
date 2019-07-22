@@ -2,5 +2,5 @@
 
 .vscode
 test.txt
-MPI/docs/notes.txt
+MPI/docs/notes*
 MPI/exec/*
