@@ -5,8 +5,9 @@ src?=src/
 exec?=exec/
 FLAGS = -Wall -o2 -o 
 
-
 all: ${EXECS}
+
+.PHONY: clean all
 
 MPI_bcast: ${src}MPI_bcast.cpp
 	@echo "Compiling Broadcast..."
