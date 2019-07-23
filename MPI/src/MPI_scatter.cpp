@@ -23,19 +23,14 @@ int main(int argc, char **argv) {
 
     uPtr_int my_array(new int[world_size]);
 
-    for (int i=0; i<world_size; ++i) {
-        my_array[i] = i;
-        std::cout << my_array[i] << " ";
-    }
-
-    std::cout << std::endl;
-    std::cout << world_size << ", " << world_rank << std::endl;
-
     if (world_rank == 0) {
         std::string sender;
         std::cout << "Give me the sender: ";
         std::cin >> sender;
         std::cout << "Sender is: " << sender << std::endl;
+    } 
+    else { 
+        MPI_Wait();
     }
 
     MPI::Finalize();
@@ -51,13 +46,13 @@ void alt_MPI_Scatter(int sender,             //to id the sender process
                      int root,               //rank of sender process
                      MPI_Comm comm           //communicator
 ) {
-    //TODO
     int array_size = sizeof(sendbuf);
     int world_size = MPI::COMM_WORLD.Get_size();
     int world_rank = MPI::COMM_WORLD.Get_rank();
 
     int scatter_pieces = array_size / world_size;
 
+    //choose what to do depending on who is the sender
     if (world_rank == sender) {
         int i (0);
         int start (0);
@@ -80,6 +75,6 @@ void alt_MPI_Scatter(int sender,             //to id the sender process
 
 uPtr_int create_partition(const void *sendbuf, int start, int array_size) {
     for (int i = start; i<array_size; ++i) {
-        
+
     }
 }
