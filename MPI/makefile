@@ -1,16 +1,20 @@
-EXECS = MPI_bcast CPI MPI_ping_pong MPI_user_def_dtype
+EXECS = MPI_scatter MPI_bcast CPI MPI_ping_pong MPI_user_def_dtype
 MPICXX?=mpiCC
 MPIC?=mpicc
 src?=src/
 exec?=exec/
-FLAGS = -Wall -o2 -o 
+FLAGS = -Wall -o2 -o
 
 all: ${EXECS}
 
 .PHONY: clean all
 
+MPI_scatter: ${src}MPI_scatter.cpp
+	@echo "\nCompiling Scatter..."
+	${MPICXX} ${FLAGS} ${exec}MPI_scatter ${src}MPI_scatter.cpp
+
 MPI_bcast: ${src}MPI_bcast.cpp
-	@echo "Compiling Broadcast..."
+	@echo "\nCompiling Broadcast..."
 	${MPICXX} ${FLAGS} ${exec}MPI_bcast ${src}MPI_bcast.cpp
 
 MPI_ping_pong: ${src}MPI_ping_pong.cpp
@@ -28,5 +32,3 @@ CPI: ${src}cpi.c
 clean:
 	@echo "Removing all exec files..."
 	rm ${exec}*
-	
-
