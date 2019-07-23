@@ -1,4 +1,4 @@
-EXECS = MPI_scatter MPI_bcast CPI MPI_ping_pong MPI_user_def_dtype
+EXECS = test MPI_scatter MPI_bcast CPI MPI_ping_pong MPI_user_def_dtype
 MPICXX?=mpiCC
 MPIC?=mpicc
 src?=src/
@@ -8,6 +8,10 @@ FLAGS = -Wall -o2 -o
 all: ${EXECS}
 
 .PHONY: clean all
+
+test: ${src}test.cpp
+	@echo "\nCompiling test..."
+	${MPICXX} ${FLAGS} ${exec}test ${src}test.cpp
 
 MPI_scatter: ${src}MPI_scatter.cpp
 	@echo "\nCompiling Scatter..."
