@@ -4,3 +4,6 @@
 test.txt
 MPI/docs/notes*
 MPI/exec/*
+MPI/test
+MPI/MPI_*
+MPI/CPI
