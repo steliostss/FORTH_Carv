@@ -34,6 +34,8 @@ void alt_MPI_Scatter(uPtr_int sendbuf,       //address of send buffer
 
 uPtr_intVec string_to_vec(std::string myStr);
 
+void handle_command_line_args(int argc, char **argv, int *array_size, int *sender, uPtr_intVec recv);
+
 /*************************************************
  ******************** MAIN ***********************
  *************************************************/
@@ -42,75 +44,14 @@ int main(int argc, char **argv)
 {
     MPI::Init(argc, argv);
     int world_size = MPI::COMM_WORLD.Get_size();
-    int world_rank = MPI::COMM_WORLD.Get_rank();
+    // int world_rank = MPI::COMM_WORLD.Get_rank();
 
     // std::cout << "My rank is: " << world_rank << std::endl;
     int array_size = -1;
     int sender = -1;
     uPtr_intVec recv;
 
-    if (world_rank == 0)
-    {
-        for (int i = 1; i < argc; i++)
-        {
-            if (i + 1 != argc)
-            {
-                if (strcmp(argv[i], "-sender") == 0)
-                {                                    // This is your parameter name
-                    sender = std::stoi(argv[i + 1]); // The next value in the array is your value
-                    std::cout << "Sender is: " << sender << std::endl;
-                    i++; // Move to the next flag
-                    if (sender > world_size)
-                    {
-                        std::cerr << "Very large proc id for sender" << std::endl;
-                        exit(1);
-                    }
-                }
-                else if (strcmp(argv[i], "-size") == 0)
-                {
-                    array_size = std::stoi(argv[i + 1]);
-                    std::cout << "Array size = " << array_size << std::endl;
-                    i++;
-                }
-                else if (strcmp(argv[i], "-recv") == 0)
-                {
-                    std::string recip = argv[i + 1];
-                    i++;
-                    for (int j = 0; j < world_size; ++j)
-                    {
-                        recv = string_to_vec(recip);
-                    }
-                    std::cout << "Recipients = ";
-                    for (auto it = recv->begin(); it != recv->end(); ++it)
-                    {
-                        std::cout << *it << " ";
-                    }
-                    std::cout << std::endl;
-                }
-            }
-        }
-        if (array_size < 0)
-        { //Array size not defined in command line
-            std::cout << "Default array size value is 10." << std::endl;
-            array_size = 10;
-        }
-        if (sender < 0)
-        { //Sender not defined in command line
-            std::cout << "Default sender is 0." << std::endl;
-            sender = 0;
-        }
-        if (recv->empty())
-        { //Recipients not defined in command line
-            std::cout << "Default recipients are all." << std::endl
-                      << "Recipients: ";
-            for (int i = 0; i < world_size; ++i)
-            {
-                recv->push_back(i);
-                std::cout << i << " ";
-            }
-            std::cout << std::endl;
-        }
-    }
+    handle_command_line_args(argc, argv, &array_size, &sender, std::move(recv));
 
     uPtr_int Usend_array(new int[array_size]);
     uPtr_int Urecv_array(new int[array_size]);
@@ -120,13 +61,13 @@ int main(int argc, char **argv)
 
     int scatter_pieces = array_size / world_size; //each process will receive "scatter_pieceis" elements
 
-    alt_MPI_Scatter(std::move(Usend_array),     //send buffer
-                    scatter_pieces,                          //number of elements
-                    MPI_INT,                    //MPI Send Datatype
-                    std::move(Urecv_array),     //receive buffer
-                    MPI_INT,                    //MPI Receive Datatype
-                    sender,                     //sender id
-                    MPI::COMM_WORLD);           //MPI Communicator
+    // alt_MPI_Scatter(std::move(Usend_array), //send buffer
+    //                 scatter_pieces,         //number of elements
+    //                 MPI_INT,                //MPI Send Datatype
+    //                 std::move(Urecv_array), //receive buffer
+    //                 MPI_INT,                //MPI Receive Datatype
+    //                 sender,                 //sender id
+    //                 MPI::COMM_WORLD);       //MPI Communicator
 
     MPI::Finalize();
     return 0;
@@ -231,4 +172,71 @@ uPtr_intVec string_to_vec(std::string myStr)
     }
 
     return std::move(myVec);
+}
+
+void handle_command_line_args(int argc, char **argv, int *array_size, int *sender, uPtr_intVec recv)
+{
+    int world_size = MPI::COMM_WORLD.Get_size();
+
+    for (int i = 1; i < argc; i++)
+    {
+        if (i + 1 != argc)
+        {
+            if (strcmp(argv[i], "-sender") == 0)
+            {                                    // This is your parameter name
+                *sender = std::stoi(argv[i + 1]); // The next value in the array is your value
+                std::cout << "Sender is: " << *sender << std::endl;
+                i++; // Move to the next flag
+                if (*sender > world_size)
+                {
+                    std::cerr << "Very large proc id for sender" << std::endl;
+                    exit(1);
+                }
+            }
+            else if (strcmp(argv[i], "-size") == 0)
+            {
+                *array_size = std::stoi(argv[i + 1]);
+                std::cout << "Array size = " << *array_size << std::endl;
+                i++;
+            }
+            else if (strcmp(argv[i], "-recv") == 0)
+            {
+                std::string recip = argv[i + 1];
+                i++;
+                for (int j = 0; j < world_size; ++j)
+                {
+                    recv = string_to_vec(recip);
+                }
+                std::cout << "Recipients = ";
+                for (auto it = recv->begin(); it != recv->end(); ++it)
+                {
+                    std::cout << *it << " ";
+                }
+                std::cout << std::endl;
+            }
+        }
+    }
+    if (*array_size < 0)
+    { //Array size not defined in command line
+        std::cout << "Default array size value is 10." << std::endl;
+        *array_size = 10;
+    }
+    if (*sender < 0)
+    { //Sender not defined in command line
+        std::cout << "Default sender is 0." << std::endl;
+        *sender = 0;
+    }
+    if (recv->empty())
+    { //Recipients not defined in command line
+        std::cout << "Default recipients are all." << std::endl
+                  << "Recipients: ";
+        for (int i = 0; i < world_size; ++i)
+        {
+            recv->push_back(i);
+            std::cout << i << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    return;
 }
