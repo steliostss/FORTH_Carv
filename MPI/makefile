@@ -30,7 +30,7 @@ MPI_user_def_dtype: ${src}MPI_user_def_dtype.cpp
 	${MPICXX} ${FLAGS} ${exec}MPI_user_def_dtype ${src}MPI_user_def_dtype.cpp
 
 CPI: ${src}cpi.c
-	@echo "\nCompiling CPI (test)..."
+	@echo "\nCompiling CPI (Calculating Pi) (test)..."
 	${MPIC} ${FLAGS} ${exec}CPI ${src}cpi.c
 
 clean:
