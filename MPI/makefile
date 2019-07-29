@@ -2,7 +2,7 @@ EXECS = test MPI_scatter MPI_bcast CPI MPI_ping_pong MPI_user_def_dtype
 MPICXX?=mpiCC
 MPIC?=mpicc
 src?=src/
-exec?=exec/
+exec?=./
 FLAGS = -Wall -o2 -o
 
 all: ${EXECS}
