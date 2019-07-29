@@ -16,6 +16,7 @@ test: ${src}test.cpp
 MPI_scatter: ${src}MPI_scatter.cpp
 	@echo "\nCompiling Scatter..."
 	${MPICXX} ${FLAGS} ${exec}MPI_scatter ${src}MPI_scatter.cpp
+	@echo "Correct way to execute: mpiexec -n <number_of_procs> MPI_scatter <sender_id> <array_size> ()"
 
 MPI_bcast: ${src}MPI_bcast.cpp
 	@echo "\nCompiling Broadcast..."
