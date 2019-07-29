@@ -43,10 +43,8 @@ void handle_command_line_args(int argc, char **argv, int *array_size, int *sende
 int main(int argc, char **argv)
 {
     MPI::Init(argc, argv);
-    int world_size = MPI::COMM_WORLD.Get_size();
     // int world_rank = MPI::COMM_WORLD.Get_rank();
 
-    // std::cout << "My rank is: " << world_rank << std::endl;
     int array_size = -1;
     int sender = -1;
     uPtr_intVec recv;
@@ -59,7 +57,8 @@ int main(int argc, char **argv)
     sPtr_int Ssend_array = std::move(Usend_array);
     fill_array(Ssend_array, array_size);
 
-    int scatter_pieces = array_size / world_size; //each process will receive "scatter_pieceis" elements
+    int world_size = MPI::COMM_WORLD.Get_size();
+    int scatter_pieces = array_size / world_size; //each process will receive "scatter_piecies" elements
 
     // alt_MPI_Scatter(std::move(Usend_array), //send buffer
     //                 scatter_pieces,         //number of elements
