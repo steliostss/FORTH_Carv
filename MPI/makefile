@@ -16,7 +16,7 @@ test: ${src}test.cpp
 MPI_scatter: ${src}MPI_scatter.cpp
 	@echo "\nCompiling Scatter..."
 	${MPICXX} ${FLAGS} ${exec}MPI_scatter ${src}MPI_scatter.cpp
-	@echo "Correct way to execute: mpiexec -n <number_of_procs> MPI_scatter <sender_id> <array_size> ()"
+	@echo "Correct way to execute: mpiexec -n <number_of_procs> <path/to/MPI_scatter> -sender <sender_id> -size <array_size> -recv <list_of_recipients_comma_separated> "
 
 MPI_bcast: ${src}MPI_bcast.cpp
 	@echo "\nCompiling Broadcast..."
@@ -36,4 +36,4 @@ CPI: ${src}cpi.c
 
 clean:
 	@echo "Removing all exec files..."
-	rm ${exec}*
+	rm ${EXECS}
