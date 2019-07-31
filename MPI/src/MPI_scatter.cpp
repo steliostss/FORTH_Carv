@@ -1,9 +1,11 @@
 #include "/usr/include/mpi/mpi.h"
 #include <iostream>
 #include <memory>
-#include <vector>
-#include <string>
 #include <sstream>
+#include <string>
+#include <vector>
+#include <math.h>
+#include <algorithm>
 
 /*************************************************
  ****************** TYPEDEF **********************
@@ -15,26 +17,27 @@ typedef std::vector<int> intVec;
 typedef std::vector<int>::iterator intVecIter;
 typedef std::unique_ptr<intVec> uPtr_intVec;
 typedef std::shared_ptr<intVec> sPtr_intVec;
+typedef std::tuple<int, int> int_Tup;
 
 /*************************************************
  ********* DECLARATIONS OF FUNCTIONS *************
  *************************************************/
 
-uPtr_int create_partition(uPtr_int sendbuf, int start, int scatter_pieces, int array_size);
+uPtr_int create_partition(sPtr_int sendbuf, int counter, int pieces);
 void fill_array(sPtr_int array, int array_size);
-
-void alt_MPI_Scatter(uPtr_int sendbuf,       //address of send buffer
-                     int sendcount,          //number of elements in buffer
-                     MPI::Datatype sendtype, //type of data in send buffer
-                     uPtr_int recvbuf,       //address of receive buffer
-                     MPI::Datatype recvtype, //type of data in receive buffer
-                     int sender,             //rank of sender process
-                     MPI_Comm comm           //communicator
-);
-
+int calculate_partition_size_for_proc(sPtr_intVec recv, int world_rank, int array_size, int partitions, int sender);
 uPtr_intVec string_to_vec(std::string myStr);
+uPtr_intVec handle_command_line_args(int argc, char **argv, int *array_size, int *sender);
 
-void handle_command_line_args(int argc, char **argv, int *array_size, int *sender, uPtr_intVec recv);
+void alt_MPI_Scatter(sPtr_int sendbuf,       // address of send buffer
+                     int array_size,         // size of buffer
+                     sPtr_intVec recv,   // recipients
+                     MPI::Datatype sendtype, // type of data in send buffer
+                     sPtr_int recvbuf,       // address of receive buffer
+                     MPI::Datatype recvtype, // type of data in receive buffer
+                     int sender,             // rank of sender process
+                     MPI_Comm comm           // communicator
+);
 
 /*************************************************
  ******************** MAIN ***********************
@@ -42,200 +45,243 @@ void handle_command_line_args(int argc, char **argv, int *array_size, int *sende
 
 int main(int argc, char **argv)
 {
-    MPI::Init(argc, argv);
-    // int world_rank = MPI::COMM_WORLD.Get_rank();
+  MPI::Init(argc, argv);
+  // int world_rank = MPI::COMM_WORLD.Get_rank();
 
-    int array_size = -1;
-    int sender = -1;
-    uPtr_intVec recv;
+  int array_size = -1;
+  int sender = -1;
+  sPtr_intVec recv = handle_command_line_args(argc, argv, &array_size, &sender);
 
-    handle_command_line_args(argc, argv, &array_size, &sender, std::move(recv));
+  sPtr_int Urecv_array(new int[array_size]);
 
-    uPtr_int Usend_array(new int[array_size]);
-    uPtr_int Urecv_array(new int[array_size]);
+  sPtr_int Ssend_array(new int[array_size]);
+  fill_array(Ssend_array, array_size);
 
-    sPtr_int Ssend_array = std::move(Usend_array);
-    fill_array(Ssend_array, array_size);
+  int world_rank = MPI::COMM_WORLD.Get_rank();
+  if (MPI::COMM_WORLD.Get_rank() != sender)
+    std::cout << "________" << world_rank << "_________" << std::endl;
 
-    int world_size = MPI::COMM_WORLD.Get_size();
-    int scatter_pieces = array_size / world_size; //each process will receive "scatter_piecies" elements
+  alt_MPI_Scatter(Ssend_array,      // send buffer
+                  array_size,        // size of buffer
+                  recv,             // recipients
+                  MPI_INT,          // MPI Send Datatype
+                  Urecv_array,      // receive buffer
+                  MPI_INT,          // MPI Receive Datatype
+                  sender,           // sender id
+                  MPI::COMM_WORLD); // MPI Communicator
 
-    // alt_MPI_Scatter(std::move(Usend_array), //send buffer
-    //                 scatter_pieces,         //number of elements
-    //                 MPI_INT,                //MPI Send Datatype
-    //                 std::move(Urecv_array), //receive buffer
-    //                 MPI_INT,                //MPI Receive Datatype
-    //                 sender,                 //sender id
-    //                 MPI::COMM_WORLD);       //MPI Communicator
-
-    MPI::Finalize();
-    return 0;
+  MPI::Finalize();
+  return 0;
 }
 
 /*************************************************
  ********* IMPLEMENTATIONS OF FUNCTIONS **********
  *************************************************/
 
-void alt_MPI_Scatter(uPtr_int sendbuf,       //address of send buffer
-                     int sendcount,          //number of elements in buffer
-                     MPI::Datatype sendtype, //type of data in send buffer
-                     uPtr_int recvbuf,       //address of receive buffer
-                     MPI::Datatype recvtype, //type of data in receive buffer
-                     int sender,             //rank of sender process
-                     MPI_Comm comm           //communicator
+void alt_MPI_Scatter(sPtr_int sendbuf,       // address of send buffer
+                     int array_size,         // size of buffer
+                     sPtr_intVec recv,       // recipients
+                     MPI::Datatype sendtype, // type of data in send buffer
+                     sPtr_int recvbuf,       // address of receive buffer
+                     MPI::Datatype recvtype, // type of data in receive buffer
+                     int sender,             // rank of sender process
+                     MPI_Comm comm           // communicator
 )
 {
-    int array_size = sizeof(sendbuf) / sizeof(int);
-    int world_size = MPI::COMM_WORLD.Get_size();
-    int world_rank = MPI::COMM_WORLD.Get_rank();
 
-    //choose what to do depending on who is the sender
-    if (world_rank == sender)
+  // int world_size = MPI::COMM_WORLD.Get_size();
+  int world_rank = MPI::COMM_WORLD.Get_rank();
+
+  int recipients = recv->size();
+
+  int number_of_partitions = array_size / recipients;
+  int counter(0);
+  int elements;
+  intVecIter iter = recv->begin();
+  if (world_rank == sender)
+  { //send to all
+    while (counter++ < recipients)
     {
-        int i(0);
-        int start(0);
-        while (i < world_size)
-        { //for all processes
-            std::cout << "i is: " << i << std::endl;
-            if (i != world_rank)
-            { //but not the sender
-                std::cout << "Begining data distribution..." << std::endl;
-                // Creating partition
-                uPtr_int sub_array = create_partition(std::move(sendbuf), start, sendcount, array_size);
-                start += sendcount;
-                MPI::COMM_WORLD.Isend(std::move(&sub_array), sendcount, MPI::INT, i, 0);
-                std::cout << "Sender: " << world_rank << " just sent to: " << i << std::endl;
-            }
-            ++i;
-        }
+      int next_recip = *iter; // next recipient
+      if (iter != recv->end())
+        iter++; // if just for security
+
+      elements = calculate_partition_size_for_proc(recv, next_recip, array_size, number_of_partitions, sender);
+
+      // uPtr_int partitioned_table = create_partition(sendbuf, counter, elements);
+      // MPI::COMM_WORLD.Isend(std::move(&partitioned_table), elements, MPI::INT, next_recip, 0);
+      // std::cout << "Sender: " << world_rank << " just sent to: " << next_recip << std::endl;
     }
-    else
-    {
-        MPI_Request request = MPI::COMM_WORLD.Irecv(std::move(&recvbuf), sendcount, MPI::INT, sender, 0);
-        // MPI_Status stat;
-        MPI_Wait(&request, MPI_STATUS_IGNORE);
-        if (request != 0)
-        {
-            std::cout << "Status for proc: " << world_rank << " is: " << request << std::endl;
-            std::cout << "Receiving..." << std::endl;
-            std::cout << "Proc: " << world_rank << " just received: ";
-            for (int i = 0; i < sendcount; ++i)
-            {
-                std::cout << recvbuf[i] << " ";
-            }
-            std::cout << std::endl;
-        }
-    }
-    return;
+  }
+  else if ( std::find(recv->begin(), recv->end(), world_rank) != recv->end() )
+  { //receive from sender
+
+    int world_rank = MPI::COMM_WORLD.Get_rank();
+    int elements = calculate_partition_size_for_proc(recv, world_rank, array_size, number_of_partitions, sender);
+
+    // MPI_Request request = MPI::COMM_WORLD.Irecv(std::move(&recvbuf), elements, MPI::INT, sender, 0);
+    // // MPI_Status stat;
+    // MPI_Wait(&request, MPI_STATUS_IGNORE);
+  }
+
+  return;
 }
 
-uPtr_int create_partition(uPtr_int sendbuf, int start, int scatter_pieces, int array_size)
+// creates sub arrays from sendbuf
+uPtr_int create_partition(sPtr_int sendbuf, int counter, int scatter_pieces)
 {
-    uPtr_int partitioned_table(new int[scatter_pieces]);
 
-    for (int i = start; i < scatter_pieces + start; ++i)
-    {
-        partitioned_table[i - start] = sendbuf[i];
-    }
-    std::cout << "for start: " << start << std::endl;
-    std::cout << "array is: ";
-    for (int i = 0; i < scatter_pieces; ++i)
-    {
-        std::cout << partitioned_table[i];
-    }
-
-    std::cout << std::endl;
-
-    return std::move(partitioned_table);
 }
 
 void fill_array(sPtr_int array, int array_size)
 {
-    for (int i = 0; i < array_size; ++i)
-    {
-        array[i] = i;
-    }
+  for (int i = 0; i < array_size; ++i)
+  {
+    array[i] = i;
+  }
 }
 
 uPtr_intVec string_to_vec(std::string myStr)
 {
-    uPtr_intVec myVec(new intVec);
+  uPtr_intVec myVec(new intVec);
 
-    std::stringstream ss(myStr);
+  std::stringstream ss(myStr);
 
-    for (int i; ss >> i;)
-    {
-        myVec->push_back(i);
-        if (ss.peek() == ',')
-            ss.ignore();
-    }
+  for (int i; ss >> i;)
+  {
+    myVec->push_back(i);
+    if (ss.peek() == ',')
+      ss.ignore();
+  }
 
-    return std::move(myVec);
+  return std::move(myVec);
 }
 
-void handle_command_line_args(int argc, char **argv, int *array_size, int *sender, uPtr_intVec recv)
+uPtr_intVec handle_command_line_args(int argc, char **argv, int *array_size, int *sender)
 {
-    int world_size = MPI::COMM_WORLD.Get_size();
-
-    for (int i = 1; i < argc; i++)
+  int world_size = MPI::COMM_WORLD.Get_size();
+  uPtr_intVec recv(new intVec);
+  for (int i = 1; i < argc; i++)
+  {
+    if (i + 1 != argc)
     {
-        if (i + 1 != argc)
+      if (strcmp(argv[i], "-sender") == 0)
+      { // This is your parameter name
+        *sender =
+            std::stoi(argv[i + 1]); // The next value in the array is your value
+        if (*sender >= world_size)
         {
-            if (strcmp(argv[i], "-sender") == 0)
-            {                                    // This is your parameter name
-                *sender = std::stoi(argv[i + 1]); // The next value in the array is your value
-                std::cout << "Sender is: " << *sender << std::endl;
-                i++; // Move to the next flag
-                if (*sender > world_size)
-                {
-                    std::cerr << "Very large proc id for sender" << std::endl;
-                    exit(1);
-                }
-            }
-            else if (strcmp(argv[i], "-size") == 0)
-            {
-                *array_size = std::stoi(argv[i + 1]);
-                std::cout << "Array size = " << *array_size << std::endl;
-                i++;
-            }
-            else if (strcmp(argv[i], "-recv") == 0)
-            {
-                std::string recip = argv[i + 1];
-                i++;
-                for (int j = 0; j < world_size; ++j)
-                {
-                    recv = string_to_vec(recip);
-                }
-                std::cout << "Recipients = ";
-                for (auto it = recv->begin(); it != recv->end(); ++it)
-                {
-                    std::cout << *it << " ";
-                }
-                std::cout << std::endl;
-            }
+          std::cerr << "Very large proc id for sender" << std::endl;
+          MPI::COMM_WORLD.Abort(-1);
         }
-    }
-    if (*array_size < 0)
-    { //Array size not defined in command line
-        std::cout << "Default array size value is 10." << std::endl;
-        *array_size = 10;
-    }
-    if (*sender < 0)
-    { //Sender not defined in command line
-        std::cout << "Default sender is 0." << std::endl;
-        *sender = 0;
-    }
-    if (recv->empty())
-    { //Recipients not defined in command line
-        std::cout << "Default recipients are all." << std::endl
-                  << "Recipients: ";
-        for (int i = 0; i < world_size; ++i)
+        else
         {
-            recv->push_back(i);
-            std::cout << i << " ";
+          // std::cout << "Sender is: " << *sender << std::endl;
+          i++; // Move to the next flag
         }
-        std::cout << std::endl;
-    }
+      }
+      else if (strcmp(argv[i], "-size") == 0)
+      {
+        *array_size = std::stoi(argv[i + 1]);
+        if (*array_size <= 0)
+        {
+          std::cerr << "Array size not valid" << std::endl;
+          MPI::COMM_WORLD.Abort(-1);
+        }
+        i++;
+      }
+      else if (strcmp(argv[i], "-recv") == 0)
+      {
+        std::string recip = argv[i + 1];
+        i++;
+        for (int j = 0; j < world_size; ++j)
+        {
+          recv = string_to_vec(recip);
+        }
 
-    return;
+        // std::cout << "HEY" << std::endl;
+        // for (auto i=recv->begin(); i!=recv->end(); ++i)
+        // {
+        //   std::cout << *i;
+        // }
+        // std::cout << std::endl;
+      }
+    }
+  }
+
+  // std::cout << "Sender is: " << *sender << std::endl;
+  // std::cout << "Array size = " << *array_size << std::endl;
+
+  if (*array_size < 0)
+  { // Array size not defined in command line
+    // std::cout << "Default array size value is 10." << std::endl;
+    *array_size = 10;
+  }
+  if (*sender < 0)
+  { // Sender not defined in command line
+    // std::cout << "Default sender is 0." << std::endl;
+    *sender = 0;
+  }
+  if (recv->empty())
+  { // Recipients not defined in command line
+    // std::cout << "Default recipients are all." << std::endl;
+    for (int i = 0; i < world_size; ++i)
+    {
+      if (i != *sender) recv->push_back(i);
+    }
+  }
+
+  // std::cout << "Recipients = ";
+  // for (auto it = recv->begin(); it != recv->end(); ++it)
+  // {
+  //   std::cout << *it << " ";
+  // }
+  // std::cout << std::endl;
+  // std::cout << std::endl;
+  // std::cout << recv->size();
+  // std::cout << std::endl;
+  // std::cout << std::endl;
+
+  return std::move(recv);
+}
+
+int calculate_partition_size_for_proc(sPtr_intVec recv, int world_rank ,int array_size, int partitions, int sender)
+{
+  int position (0);
+  double test = (double)array_size / (double)recv->size();
+  // std::cout << "test " << test << std::endl;
+
+  int elements = ceil(test);
+  if (MPI::COMM_WORLD.Get_rank() != sender)
+    std::cout << elements << std::endl;
+  // std::cout << recv->size() << "_____" << array_size << std::endl;
+  for (auto it = recv->begin(); it != recv->end(); ++it)
+  {
+    if (*it == world_rank)
+      break;
+    position++;
+    // std::cout << std::endl;
+    // std::cout << "proc with id: " << world_rank << " has position: " << position << std::endl;
+    // std::cout << std::endl;
+  }
+  // if (MPI::COMM_WORLD.Get_rank() == sender)
+  // {
+  //   for (auto it=recv->begin(); it!=recv->end(); ++it) 
+  //   {
+  //     std::cout << *it; 
+  //   }
+  //   std::cout << std::endl;
+  // }
+
+  if (position == recv->size() - 1)
+  { //not the last element
+    elements = array_size - elements * (recv->size() - 1);
+  }
+  if (MPI::COMM_WORLD.Get_rank() != sender)
+  {
+    std::cout << std::endl;
+    std::cout << "I, proc with id: " << world_rank << " will receive: " << elements << " element(s)." << std::endl;
+    std::cout << std::endl;
+  }
+  return elements;
 }
