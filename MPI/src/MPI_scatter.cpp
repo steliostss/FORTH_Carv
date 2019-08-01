@@ -28,17 +28,10 @@ uPtr_intVec string_to_vec(std::string myStr);
 uPtr_intVec handle_command_line_args(int argc, char **argv, int *array_size, int *sender);
 int calculate_partition_size_for_proc(sPtr_intVec recv, int world_rank, int array_size, int sender);
 
-uPtr_int create_partition(sPtr_int sendbuf, // address of send buffer
-                          int elements,     // elements of partition
-                          int offset,       // offset to create partition
-                          int array_size    // send buffer size
-);
-
 void alt_MPI_Scatter(sPtr_int sendbuf,       // address of send buffer
                      int array_size,         // size of buffer
                      sPtr_intVec recv,       // recipients
                      MPI::Datatype sendtype, // type of data in send buffer
-                     sPtr_int recvbuf,       // address of receive buffer
                      MPI::Datatype recvtype, // type of data in receive buffer
                      int sender,             // rank of sender process
                      MPI_Comm comm           // communicator
@@ -57,20 +50,13 @@ int main(int argc, char **argv)
   int sender = -1;
   sPtr_intVec recv = handle_command_line_args(argc, argv, &array_size, &sender);
 
-  sPtr_int Urecv_array(new int[array_size]);
-
   sPtr_int Ssend_array(new int[array_size]);
   fill_array(Ssend_array, array_size);
-
-  // int world_rank = MPI::COMM_WORLD.Get_rank();
-  // if (MPI::COMM_WORLD.Get_rank() != sender)
-  //   std::cout << "________" << world_rank << "_________" << std::endl;
 
   alt_MPI_Scatter(Ssend_array,      // send buffer
                   array_size,       // size of buffer
                   recv,             // recipients
                   MPI_INT,          // MPI Send Datatype
-                  Urecv_array,      // receive buffer
                   MPI_INT,          // MPI Receive Datatype
                   sender,           // sender id
                   MPI::COMM_WORLD); // MPI Communicator
@@ -87,7 +73,6 @@ void alt_MPI_Scatter(sPtr_int sendbuf,       // address of send buffer
                      int array_size,         // size of buffer
                      sPtr_intVec recv,       // recipients
                      MPI::Datatype sendtype, // type of data in send buffer
-                     sPtr_int recvbuf,       // address of receive buffer
                      MPI::Datatype recvtype, // type of data in receive buffer
                      int sender,             // rank of sender process
                      MPI_Comm comm           // communicator
@@ -100,6 +85,7 @@ void alt_MPI_Scatter(sPtr_int sendbuf,       // address of send buffer
   int world_rank = MPI::COMM_WORLD.Get_rank();
 
   int recipients = recv->size();
+  intVecIter next_recip = recv->begin();
   int counter(0);
   int offset_of_partition(0);
 
@@ -107,50 +93,33 @@ void alt_MPI_Scatter(sPtr_int sendbuf,       // address of send buffer
   { //send to all
     while (counter++ < recipients)
     {
-      int elements = calculate_partition_size_for_proc(recv, world_rank, array_size, sender);
-      uPtr_int partitioned_table = create_partition(sendbuf, elements, offset_of_partition, array_size);
+
+      int elements = calculate_partition_size_for_proc(recv, *next_recip, array_size, sender);
+      int *partitioned_table = new int[elements];
+      if (next_recip != recv->end())
+        next_recip++;
+      for (int i = 0; i < elements; ++i)
+      { // create partitioned table from original
+        partitioned_table[i] = sendbuf[offset_of_partition + i];
+      }
       offset_of_partition += elements;
-      // std::cout << "Partitioned table contains: ";
-      // for (int i=0; i<elements; ++i)
-      // {
-      //   std::cout << partitioned_table[i] << " ";
-      // }
-      // std::cout << std::endl;
-      // std::cout << std::endl;
-      std::cout << "Counter: " << counter << ", Elements: " << elements << ", Original contains: ";
-      for (int i=0; i<elements; ++i)
-      {
-        std::cout << sendbuf[offset_of_partition + i] << ' ';
-      } 
-      std::cout << std::endl;
-      // MPI::COMM_WORLD.Isend(std::move(&partitioned_table), elements, MPI::INT, next_recip, 0);
+      MPI::COMM_WORLD.Isend(partitioned_table, elements, MPI::INT, *next_recip, 0);
       // std::cout << "Sender: " << world_rank << " just sent to: " << next_recip << std::endl;
     }
   }
+
   else if (std::find(recv->begin(), recv->end(), world_rank) != recv->end())
   { //receive from sender
 
-    // int world_rank = MPI::COMM_WORLD.Get_rank();
-    // uPtr_int partitioned_table = create_partition(sendbuf, counter, recv, next_recip, array_size, sender);
-
-    // MPI_Request request = MPI::COMM_WORLD.Irecv(std::move(&recvbuf), elements, MPI::INT, sender, 0);
-    // // MPI_Status stat;
-    // MPI_Wait(&request, MPI_STATUS_IGNORE);
+    int world_rank = MPI::COMM_WORLD.Get_rank();
+    int elements = calculate_partition_size_for_proc(recv, world_rank, array_size, sender);
+    int *recvbuf = new int[elements];
+    MPI_Request request = MPI::COMM_WORLD.Irecv(recvbuf, elements, MPI::INT, sender, 0);
+    // MPI_Status stat;
+    MPI_Wait(&request, MPI_STATUS_IGNORE);
   }
 
   return;
-}
-
-// creates sub arrays from sendbuf
-uPtr_int create_partition(sPtr_int sendbuf, int elements, int offset, int array_size )
-{
-  uPtr_int send_array(new int[elements]);
-  for (auto i = 0; i<0; ++i)
-  {
-    send_array[i] = sendbuf[offset+i];
-  }
-
-  return std::move(send_array);
 }
 
 void fill_array(sPtr_int array, int array_size)
@@ -270,14 +239,9 @@ int calculate_partition_size_for_proc(sPtr_intVec recv, int world_rank, int arra
       break;
     position++;
   }
-  std::cout << "Position: " << position;
-
   int remainder = array_size - elements * recv->size();
-  std::cout << std::endl << "Remainder: " << remainder << std::endl;
   if (position < remainder)
-  {
-    std::cout << "test";
     elements++;
-  }
+
   return elements;
 }
