@@ -31,7 +31,7 @@ uPtr_intVec handle_command_line_args(int argc, char **argv, int *array_size, int
 
 void alt_MPI_Scatter(sPtr_int sendbuf,       // address of send buffer
                      int array_size,         // size of buffer
-                     sPtr_intVec recv,   // recipients
+                     sPtr_intVec recv,       // recipients
                      MPI::Datatype sendtype, // type of data in send buffer
                      sPtr_int recvbuf,       // address of receive buffer
                      MPI::Datatype recvtype, // type of data in receive buffer
@@ -62,7 +62,7 @@ int main(int argc, char **argv)
     std::cout << "________" << world_rank << "_________" << std::endl;
 
   alt_MPI_Scatter(Ssend_array,      // send buffer
-                  array_size,        // size of buffer
+                  array_size,       // size of buffer
                   recv,             // recipients
                   MPI_INT,          // MPI Send Datatype
                   Urecv_array,      // receive buffer
@@ -113,7 +113,7 @@ void alt_MPI_Scatter(sPtr_int sendbuf,       // address of send buffer
       // std::cout << "Sender: " << world_rank << " just sent to: " << next_recip << std::endl;
     }
   }
-  else if ( std::find(recv->begin(), recv->end(), world_rank) != recv->end() )
+  else if (std::find(recv->begin(), recv->end(), world_rank) != recv->end())
   { //receive from sender
 
     int world_rank = MPI::COMM_WORLD.Get_rank();
@@ -130,7 +130,6 @@ void alt_MPI_Scatter(sPtr_int sendbuf,       // address of send buffer
 // creates sub arrays from sendbuf
 uPtr_int create_partition(sPtr_int sendbuf, int counter, int scatter_pieces)
 {
-
 }
 
 void fill_array(sPtr_int array, int array_size)
@@ -227,7 +226,8 @@ uPtr_intVec handle_command_line_args(int argc, char **argv, int *array_size, int
     // std::cout << "Default recipients are all." << std::endl;
     for (int i = 0; i < world_size; ++i)
     {
-      if (i != *sender) recv->push_back(i);
+      if (i != *sender)
+        recv->push_back(i);
     }
   }
 
@@ -245,38 +245,21 @@ uPtr_intVec handle_command_line_args(int argc, char **argv, int *array_size, int
   return std::move(recv);
 }
 
-int calculate_partition_size_for_proc(sPtr_intVec recv, int world_rank ,int array_size, int partitions, int sender)
+int calculate_partition_size_for_proc(sPtr_intVec recv, int world_rank, int array_size, int partitions, int sender)
 {
-  int position (0);
-  double test = (double)array_size / (double)recv->size();
-  // std::cout << "test " << test << std::endl;
 
-  int elements = ceil(test);
-  if (MPI::COMM_WORLD.Get_rank() != sender)
-    std::cout << elements << std::endl;
-  // std::cout << recv->size() << "_____" << array_size << std::endl;
+  int elements = array_size / recv->size(); // similar to floor(array_size /recv->size();)
+  int position(0);
   for (auto it = recv->begin(); it != recv->end(); ++it)
   {
-    if (*it == world_rank)
-      break;
+    if (*it == world_rank) break;
     position++;
-    // std::cout << std::endl;
-    // std::cout << "proc with id: " << world_rank << " has position: " << position << std::endl;
-    // std::cout << std::endl;
   }
-  // if (MPI::COMM_WORLD.Get_rank() == sender)
-  // {
-  //   for (auto it=recv->begin(); it!=recv->end(); ++it) 
-  //   {
-  //     std::cout << *it; 
-  //   }
-  //   std::cout << std::endl;
-  // }
 
-  if (position == recv->size() - 1)
-  { //not the last element
-    elements = array_size - elements * (recv->size() - 1);
-  }
+  int remainder = array_size - elements * recv->size();
+  if (position < remainder)
+    elements++;
+
   if (MPI::COMM_WORLD.Get_rank() != sender)
   {
     std::cout << std::endl;
