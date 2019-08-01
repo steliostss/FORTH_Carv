@@ -12,7 +12,7 @@ File: [MPI_ping_pong.cpp](./src/MPI_ping_pong.cpp) intends to establish a simple
 
 ### MPI Scatter
 
-File: [MPI_user_def_dtype.cpp](./src/MPI_user_def_dtype.cpp) intends to scatter an int array to all available processes.
+File: [MPI_scatter.cpp](./src/MPI_scatter.cpp) intends to scatter an int array to all available processes.
 
 ### MPI User Defined Datatype
 

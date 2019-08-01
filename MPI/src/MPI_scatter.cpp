@@ -23,11 +23,16 @@ typedef std::tuple<int, int> int_Tup;
  ********* DECLARATIONS OF FUNCTIONS *************
  *************************************************/
 
-uPtr_int create_partition(sPtr_int sendbuf, int counter, int pieces);
 void fill_array(sPtr_int array, int array_size);
-int calculate_partition_size_for_proc(sPtr_intVec recv, int world_rank, int array_size, int partitions, int sender);
 uPtr_intVec string_to_vec(std::string myStr);
 uPtr_intVec handle_command_line_args(int argc, char **argv, int *array_size, int *sender);
+int calculate_partition_size_for_proc(sPtr_intVec recv, int world_rank, int array_size, int sender);
+
+uPtr_int create_partition(sPtr_int sendbuf, // address of send buffer
+                          int elements,     // elements of partition
+                          int offset,       // offset to create partition
+                          int array_size    // send buffer size
+);
 
 void alt_MPI_Scatter(sPtr_int sendbuf,       // address of send buffer
                      int array_size,         // size of buffer
@@ -57,9 +62,9 @@ int main(int argc, char **argv)
   sPtr_int Ssend_array(new int[array_size]);
   fill_array(Ssend_array, array_size);
 
-  int world_rank = MPI::COMM_WORLD.Get_rank();
-  if (MPI::COMM_WORLD.Get_rank() != sender)
-    std::cout << "________" << world_rank << "_________" << std::endl;
+  // int world_rank = MPI::COMM_WORLD.Get_rank();
+  // if (MPI::COMM_WORLD.Get_rank() != sender)
+  //   std::cout << "________" << world_rank << "_________" << std::endl;
 
   alt_MPI_Scatter(Ssend_array,      // send buffer
                   array_size,       // size of buffer
@@ -89,26 +94,35 @@ void alt_MPI_Scatter(sPtr_int sendbuf,       // address of send buffer
 )
 {
 
+  // std::cout << std::endl;
+
   // int world_size = MPI::COMM_WORLD.Get_size();
   int world_rank = MPI::COMM_WORLD.Get_rank();
 
   int recipients = recv->size();
-
-  int number_of_partitions = array_size / recipients;
   int counter(0);
-  int elements;
-  intVecIter iter = recv->begin();
+  int offset_of_partition(0);
+
   if (world_rank == sender)
   { //send to all
     while (counter++ < recipients)
     {
-      int next_recip = *iter; // next recipient
-      if (iter != recv->end())
-        iter++; // if just for security
-
-      elements = calculate_partition_size_for_proc(recv, next_recip, array_size, number_of_partitions, sender);
-
-      // uPtr_int partitioned_table = create_partition(sendbuf, counter, elements);
+      int elements = calculate_partition_size_for_proc(recv, world_rank, array_size, sender);
+      uPtr_int partitioned_table = create_partition(sendbuf, elements, offset_of_partition, array_size);
+      offset_of_partition += elements;
+      // std::cout << "Partitioned table contains: ";
+      // for (int i=0; i<elements; ++i)
+      // {
+      //   std::cout << partitioned_table[i] << " ";
+      // }
+      // std::cout << std::endl;
+      // std::cout << std::endl;
+      std::cout << "Counter: " << counter << ", Elements: " << elements << ", Original contains: ";
+      for (int i=0; i<elements; ++i)
+      {
+        std::cout << sendbuf[offset_of_partition + i] << ' ';
+      } 
+      std::cout << std::endl;
       // MPI::COMM_WORLD.Isend(std::move(&partitioned_table), elements, MPI::INT, next_recip, 0);
       // std::cout << "Sender: " << world_rank << " just sent to: " << next_recip << std::endl;
     }
@@ -116,8 +130,8 @@ void alt_MPI_Scatter(sPtr_int sendbuf,       // address of send buffer
   else if (std::find(recv->begin(), recv->end(), world_rank) != recv->end())
   { //receive from sender
 
-    int world_rank = MPI::COMM_WORLD.Get_rank();
-    int elements = calculate_partition_size_for_proc(recv, world_rank, array_size, number_of_partitions, sender);
+    // int world_rank = MPI::COMM_WORLD.Get_rank();
+    // uPtr_int partitioned_table = create_partition(sendbuf, counter, recv, next_recip, array_size, sender);
 
     // MPI_Request request = MPI::COMM_WORLD.Irecv(std::move(&recvbuf), elements, MPI::INT, sender, 0);
     // // MPI_Status stat;
@@ -128,8 +142,15 @@ void alt_MPI_Scatter(sPtr_int sendbuf,       // address of send buffer
 }
 
 // creates sub arrays from sendbuf
-uPtr_int create_partition(sPtr_int sendbuf, int counter, int scatter_pieces)
+uPtr_int create_partition(sPtr_int sendbuf, int elements, int offset, int array_size )
 {
+  uPtr_int send_array(new int[elements]);
+  for (auto i = 0; i<0; ++i)
+  {
+    send_array[i] = sendbuf[offset+i];
+  }
+
+  return std::move(send_array);
 }
 
 void fill_array(sPtr_int array, int array_size)
@@ -197,13 +218,6 @@ uPtr_intVec handle_command_line_args(int argc, char **argv, int *array_size, int
         {
           recv = string_to_vec(recip);
         }
-
-        // std::cout << "HEY" << std::endl;
-        // for (auto i=recv->begin(); i!=recv->end(); ++i)
-        // {
-        //   std::cout << *i;
-        // }
-        // std::cout << std::endl;
       }
     }
   }
@@ -245,26 +259,25 @@ uPtr_intVec handle_command_line_args(int argc, char **argv, int *array_size, int
   return std::move(recv);
 }
 
-int calculate_partition_size_for_proc(sPtr_intVec recv, int world_rank, int array_size, int partitions, int sender)
+int calculate_partition_size_for_proc(sPtr_intVec recv, int world_rank, int array_size, int sender)
 {
 
   int elements = array_size / recv->size(); // similar to floor(array_size /recv->size();)
-  int position(0);
+  int position = 0;
   for (auto it = recv->begin(); it != recv->end(); ++it)
   {
-    if (*it == world_rank) break;
+    if (*it == world_rank)
+      break;
     position++;
   }
+  std::cout << "Position: " << position;
 
   int remainder = array_size - elements * recv->size();
+  std::cout << std::endl << "Remainder: " << remainder << std::endl;
   if (position < remainder)
-    elements++;
-
-  if (MPI::COMM_WORLD.Get_rank() != sender)
   {
-    std::cout << std::endl;
-    std::cout << "I, proc with id: " << world_rank << " will receive: " << elements << " element(s)." << std::endl;
-    std::cout << std::endl;
+    std::cout << "test";
+    elements++;
   }
   return elements;
 }
