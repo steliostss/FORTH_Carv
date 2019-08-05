@@ -1,4 +1,14 @@
-# MPI Folder Outline
+# MPI Implementation 
+
+## Required Software
+
+MPICH is needed to test/run this project
+
+install mpich on ubuntu:
+
+``` sudo apt-get install mpich ```
+
+## MPI Folder Outline
 
 All files are custom implementation of MPICH functions.
 
@@ -21,3 +31,4 @@ File: [MPI_user_def_dtype.cpp](./src/MPI_user_def_dtype.cpp) intends to broadcas
 ### MPI CPI
 
 File: [cpi.c](./src/cpi.c) calculates Pi constant.
+
