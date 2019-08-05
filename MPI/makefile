@@ -1,43 +1,77 @@
-EXECS = exec/test exec/MPI_scatter exec/MPI_bcast exec/CPI exec/MPI_ping_pong exec/MPI_user_def_dtype
+EXECS = exec/test exec/MPI_scatter exec/MPI_bcast exec/cpi exec/MPI_ping_pong exec/MPI_user_def_dtype
 MPICXX?=mpiCC
 MPIC?=mpicc
 src?=src/
 exec?=exec/
-FLAGS = -Wall -o2 -o
+obj?=obj/
+CFLAGS = -Wall -O2 -c
+OFLAGS = -o
 
 all: ${EXECS}
 
 .PHONY: clean all
 
-exec/test: ${src}test.cpp
+##################### TEST ##################### 
+exec/test: ${obj}test.o
+	@echo "\nLinking test..."
+	${MPICXX} ${obj}test.o ${OFLAGS} ${exec}test
+
+obj/test.o: ${src}test.cpp
 	@echo "\nCompiling test..."
-	${MPICXX} ${FLAGS} ${exec}test ${src}test.cpp
+	${MPICXX} ${CFLAGS} ${src}test.cpp ${OFLAGS} ${obj}test.o
 
-exec/MPI_scatter: ${src}MPI_scatter.cpp
+################ CMD_LINE_ARGS ################ 
+obj/cmd_line_args.o: ${src}cmd_line_args.cpp
+	@echo "\nCompiling command line arguments..."
+	${MPICXX} ${CFLAGS} ${src}cmd_line_args.cpp ${OFLAGS} ${obj}cmd_line_args.o
+
+################# MPI_SCATTER ################# 
+exec/MPI_scatter: obj/MPI_scatter.o obj/cmd_line_args.o
+	@echo "\nLinking Scatter..."
+	${MPICXX} ${obj}MPI_scatter.o ${obj}cmd_line_args.o ${OFLAGS} ${exec}MPI_scatter
+
+obj/MPI_scatter.o: ${src}MPI_scatter.cpp
 	@echo "\nCompiling Scatter..."
-	${MPICXX} ${FLAGS} ${exec}MPI_scatter ${src}MPI_scatter.cpp
-	@echo "---------------------------------------"
-	@echo ""
-	@echo "Correct way to execute: mpiexec -n <number_of_procs> <path/to/MPI_scatter> -sender <sender_id> -size <array_size> -recv <list_of_recipients_comma_separated> "
-	@echo ""
-	@echo "---------------------------------------"
+	${MPICXX} ${CFLAGS} ${src}MPI_scatter.cpp ${OFLAGS} ${obj}MPI_scatter.o
 
-exec/MPI_bcast: ${src}MPI_bcast.cpp
+################## MPI_BCAST ################## 
+exec/MPI_bcast: ${obj}MPI_bcast.o obj/cmd_line_args.o
+	@echo "\nLinking Broadcast..."
+	${MPICXX} ${obj}MPI_bcast.o ${obj}cmd_line_args.o ${OFLAGS} ${exec}MPI_bcast
+
+obj/MPI_bcast.o: ${src}MPI_bcast.cpp
 	@echo "\nCompiling Broadcast..."
-	${MPICXX} ${FLAGS} ${exec}MPI_bcast ${src}MPI_bcast.cpp
+	${MPICXX} ${CFLAGS} ${src}MPI_bcast.cpp ${OFLAGS} ${obj}MPI_bcast.o
 
-exec/MPI_ping_pong: ${src}MPI_ping_pong.cpp
+################ MPI_PING_PONG ################ 
+exec/MPI_ping_pong: ${obj}MPI_ping_pong.o
+	@echo "\nLinking Ping Pong..."
+	${MPICXX} ${obj}MPI_ping_pong.o ${OFLAGS} ${exec}MPI_ping_pong
+
+obj/MPI_ping_pong.o: ${src}MPI_ping_pong.cpp
 	@echo "\nCompiling Ping Pong..."
-	${MPICXX} ${FLAGS} ${exec}MPI_ping_pong ${src}MPI_ping_pong.cpp
+	${MPICXX} ${CFLAGS} ${src}MPI_ping_pong.cpp ${OFLAGS} ${obj}MPI_ping_pong.o
 
-exec/MPI_user_def_dtype: ${src}MPI_user_def_dtype.cpp
-	@echo "\nCompiling MPI with User Defined type..."
-	${MPICXX} ${FLAGS} ${exec}MPI_user_def_dtype ${src}MPI_user_def_dtype.cpp
+############# MPI_USER_DEF_DTYPE ############## 
+exec/MPI_user_def_dtype: ${obj}MPI_user_def_dtype.o
+	@echo "\nLinking User Defined Datatype..."
+	${MPICXX} ${obj}MPI_user_def_dtype.o ${OFLAGS} ${exec}MPI_user_def_dtype
 
-exec/CPI: ${src}cpi.c
-	@echo "\nCompiling CPI (Calculating Pi) (test)..."
-	${MPIC} ${FLAGS} ${exec}CPI ${src}cpi.c
+obj/MPI_user_def_dtype.o: ${src}MPI_user_def_dtype.cpp
+	@echo "\nCompiling User Defined Datatype..."
+	${MPICXX} ${CFLAGS} ${src}MPI_user_def_dtype.cpp ${OFLAGS} ${obj}MPI_user_def_dtype.o
 
+##################### CPI ##################### 
+exec/cpi: ${obj}cpi.o
+	@echo "\nLinking User Defined Datatype..."
+	${MPIC} ${obj}cpi.o ${OFLAGS} ${exec}cpi
+
+obj/cpi.o: ${src}cpi.c
+	@echo "\nCompiling User Defined Datatype..."
+	${MPIC} ${CFLAGS} ${src}cpi.c ${OFLAGS} ${obj}cpi.o
+
+#################### CLEAN #################### 
 clean:
-	@echo "Removing all exec files..."
-	rm ${EXECS}
+	@echo "Removing all exec and obj files..."
+	rm ${exec}*
+	rm ${obj}*
