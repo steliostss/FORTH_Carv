@@ -19,7 +19,7 @@ typedef std::vector<int>::iterator intVecIter;
 typedef std::unique_ptr<intVec> uPtr_intVec;
 typedef std::shared_ptr<intVec> sPtr_intVec;
 
-uPtr_intVec handle_command_line_args(int argc, char **argv, int *array_size, int *sender)
+uPtr_intVec handle_command_line_args(int argc, char **argv, int *array_size, int *sender, int *messages)
 {
 	int world_size = MPI::COMM_WORLD.Get_size();
 	uPtr_intVec recv(new intVec);
@@ -60,6 +60,20 @@ uPtr_intVec handle_command_line_args(int argc, char **argv, int *array_size, int
 				{
 					// std::cout << recip << std::endl;
 					recv = string_to_vec(recip);
+				}
+			}
+			else if (strcmp(argv[i], "-messages") == 0)
+			{ // This is your parameter name
+				*messages = std::stoi(argv[i + 1]); // The next value in the array is your value
+				if (*messages <= 0)
+				{
+					std::cerr << "Very small number for messages" << std::endl;
+					MPI::COMM_WORLD.Abort(-1);
+				}
+				else
+				{
+					// std::cout << "#messages is: " << *messages << std::endl;
+					i++; // Move to the next flag
 				}
 			}
 		}

@@ -1,32 +1,14 @@
-#include "/usr/include/mpi/mpi.h"
-#include <iostream>
-#include <memory>
-#include <sstream>
-#include <ostream>
-#include <string>
-#include <vector>
-#include <math.h>
 #include <algorithm>
 #include "cmd_line_args.h"
 
-/*************************************************
- ****************** TYPEDEF **********************
- *************************************************/
-
-typedef std::unique_ptr<int[]> uPtr_int;
-typedef std::shared_ptr<int[]> sPtr_int;
-typedef std::vector<int> intVec;
-typedef std::vector<int>::iterator intVecIter;
-typedef std::unique_ptr<intVec> uPtr_intVec;
-typedef std::shared_ptr<intVec> sPtr_intVec;
-typedef std::tuple<int, int> int_Tup;
+#define SCATTER_SUCCESS 10;
 
 /*************************************************
  ********* DECLARATIONS OF FUNCTIONS *************
  *************************************************/
 
 int calculate_partition_size_for_proc(sPtr_intVec recv, int world_rank, int array_size, int sender);
-void alt_MPI_Scatter(int* sendbuf,       // address of send buffer
+int alt_MPI_Scatter(int* sendbuf,       // address of send buffer
                      int array_size,         // size of buffer
                      sPtr_intVec recv,       // recipients
                      MPI::Datatype sendtype, // type of data in send buffer
@@ -46,11 +28,13 @@ int main(int argc, char **argv)
 
   int array_size = -1;
   int sender = -1;
-  sPtr_intVec recv = handle_command_line_args(argc, argv, &array_size, &sender);
+  int messages (0);
+  sPtr_intVec recv = handle_command_line_args(argc, argv, &array_size, &sender, &messages);
 
   int* Ssend_array(new int[array_size]);
   fill_array(Ssend_array, array_size);
 
+  int result = 
   alt_MPI_Scatter(Ssend_array,      // send buffer
                   array_size,       // size of buffer
                   recv,             // recipients
@@ -59,6 +43,10 @@ int main(int argc, char **argv)
                   sender,           // sender id
                   MPI::COMM_WORLD); // MPI Communicator
 
+  if (result == 10 )
+  {
+    std::cout << "Successful..." << std::endl;
+  }
   MPI::Finalize();
   return 0;
 }
@@ -67,7 +55,7 @@ int main(int argc, char **argv)
  ********* IMPLEMENTATIONS OF FUNCTIONS **********
  *************************************************/
 
-void alt_MPI_Scatter(int* sendbuf,       // address of send buffer
+int alt_MPI_Scatter(int* sendbuf,       // address of send buffer
                      int array_size,         // size of buffer
                      sPtr_intVec recv,       // recipients
                      MPI::Datatype sendtype, // type of data in send buffer
@@ -125,7 +113,7 @@ void alt_MPI_Scatter(int* sendbuf,       // address of send buffer
     std::cout << std::endl;
   }
 
-  return;
+  return SCATTER_SUCCESS;
 }
 
 int calculate_partition_size_for_proc(sPtr_intVec recv, int world_rank, int array_size, int sender)
