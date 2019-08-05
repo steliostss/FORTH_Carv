@@ -7,7 +7,7 @@
 #include <vector>
 #include <math.h>
 #include <algorithm>
-#include "./cmd_line_args.h"
+#include "cmd_line_args.h"
 
 /*************************************************
  ****************** TYPEDEF **********************

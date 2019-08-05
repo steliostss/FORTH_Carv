@@ -8,7 +8,7 @@
 #include <ostream>
 #include <string>
 #include <vector>
-#include "./cmd_line_args.h"
+#include "cmd_line_args.h"
 
 #define MESSAGES_TO_SENT 2
 
