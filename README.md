@@ -10,4 +10,4 @@ To read more about my custom MPI implementation click here: [MPI_README](./MPI/R
 
 ## Contribution
 
-Refer to [CONTRIBUTING.md](https://github.com/KomaGR/softeng2018-dns/blob/master/CONTRIBUTING.md) for contributing instructions.
+Refer to [CONTRIBUTING.md](./CONTRIBUTING.md) for contributing instructions.
