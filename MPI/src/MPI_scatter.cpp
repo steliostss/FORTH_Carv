@@ -90,8 +90,7 @@ int alt_MPI_Scatter(int* sendbuf,       // address of send buffer
       }
       offset_of_partition += elements;
 
-      MPI_Request request = MPI::COMM_WORLD.Isend(partitioned_table, elements, sendtype, *next_recip, 0);
-      MPI_Wait(&request, MPI_STATUS_IGNORE);
+      MPI::COMM_WORLD.Send(partitioned_table, elements, sendtype, *next_recip, 0);
 
       // std::cout << "Sender: " << world_rank << " just sent to: " << *next_recip << std::endl;
       if (next_recip != recv->end())
