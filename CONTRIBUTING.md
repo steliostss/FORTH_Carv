@@ -40,6 +40,3 @@ In general (and as stated in the Feature Branch Workflow) when you want to imple
 * Use present tense (e.g. "Fix error" and not "Fixed error").
 * Use imperative. "Fix", "Add", "Change" instead of "Fixes", "Adds", "Changes".
 * Don't end the summary line with a period.
-
-## Further Instructions
-
