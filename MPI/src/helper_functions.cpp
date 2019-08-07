@@ -147,7 +147,7 @@ uPtr_intVec handle_command_line_args(int argc, char **argv,
 
 /*
  * This function fills a given array with numbers 
- * according to this: a[n]=n 
+ * according to this: array[n]=n 
  */
 void fill_array(int *array, int array_size)
 {
@@ -155,7 +155,7 @@ void fill_array(int *array, int array_size)
 	{
 		array[i] = i;
 	}
-}
+} 
 
 /*
  * This function creates a vector of ints
@@ -178,9 +178,9 @@ uPtr_intVec string_to_vec(std::string myStr)
 }
 
 /*
- * Given a vector of ints and an integer k, this function
+ * Given a vector of ints and the sender, this function
  * generates the same vector with the only change being 
- * that k is in front
+ * that sender is in front
  */
 uPtr_intVec reorder_vec(sPtr_intVec old_vec, int *sender)
 {
@@ -190,8 +190,10 @@ uPtr_intVec reorder_vec(sPtr_intVec old_vec, int *sender)
 
 	for (intVecIter it = old_vec->begin(); it != old_vec->end(); ++it)
 	{ // append everything else
-		if (*it != *sender)
+		if (*it != *sender) 
+		{
 			new_vec->push_back(*it);
+		}
 	}
 
 	return std::move(new_vec);
@@ -200,7 +202,7 @@ uPtr_intVec reorder_vec(sPtr_intVec old_vec, int *sender)
 /*
  * This function defines the smallest power of 2 
  * less than or equal to n
- * Complexity O(logn)
+ * - Complexity O(logn)
  */
 int highestPowerof2(int n)
 {
