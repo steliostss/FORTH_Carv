@@ -14,6 +14,8 @@
 #define SIMPLE_SEND 1
 #define OPTIMIZED_SEND 2
 
+// using uPtr_int = std::unique_ptr<int[]>;
+
 typedef std::unique_ptr<int[]> uPtr_int;
 typedef std::shared_ptr<int[]> sPtr_int;
 typedef std::vector<int> intVec;
