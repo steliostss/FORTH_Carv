@@ -63,11 +63,11 @@ obj/MPI_user_def_dtype.o: ${src}MPI_user_def_dtype.cpp
 
 ##################### CPI ##################### 
 exec/cpi: ${obj}cpi.o
-	@echo "\nLinking User Defined Datatype..."
+	@echo "\nLinking CPI: Calculating Pi constant..."
 	${MPIC} ${obj}cpi.o ${OFLAGS} ${exec}cpi
 
 obj/cpi.o: ${src}cpi.c
-	@echo "\nCompiling User Defined Datatype..."
+	@echo "\nCompiling CPI: Calculating Pi constant..."
 	${MPIC} ${CFLAGS} ${src}cpi.c ${OFLAGS} ${obj}cpi.o
 
 #################### CLEAN #################### 
