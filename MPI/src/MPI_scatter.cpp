@@ -1,5 +1,5 @@
 #include <algorithm>
-#include "cmd_line_args.h"
+#include "helper_functions.h"
 
 #define SCATTER_SUCCESS 10;
 

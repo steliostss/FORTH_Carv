@@ -6,7 +6,7 @@
 #include <ostream>
 #include <string>
 #include <vector>
-#include "cmd_line_args.h"
+#include "helper_functions.h"
 
 /*************************************************
  ****************** TYPEDEF **********************
@@ -169,7 +169,7 @@ uPtr_intVec reorder_vec(sPtr_intVec old_vec, int *sender)
 {
 	uPtr_intVec new_vec(new intVec);
 
-	new_vec->push_back(sender); //move sender to first position
+	new_vec->push_back(*sender); //move sender to first position
 
 	for (intVecIter it = old_vec->begin(); it != old_vec->end(); ++it)
 	{	// append everything else

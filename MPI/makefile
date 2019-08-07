@@ -20,24 +20,24 @@ obj/test.o: ${src}test.cpp
 	@echo "\nCompiling test..."
 	${MPICXX} ${CFLAGS} ${src}test.cpp ${OFLAGS} ${obj}test.o
 
-################ CMD_LINE_ARGS ################ 
-obj/cmd_line_args.o: ${src}cmd_line_args.cpp
+############## HELPER_FUNCTIONS ############### 
+obj/helper_functions.o: ${src}helper_functions.cpp
 	@echo "\nCompiling command line arguments..."
-	${MPICXX} ${CFLAGS} ${src}cmd_line_args.cpp ${OFLAGS} ${obj}cmd_line_args.o
+	${MPICXX} ${CFLAGS} ${src}helper_functions.cpp ${OFLAGS} ${obj}helper_functions.o
 
 ################# MPI_SCATTER ################# 
-exec/MPI_scatter: obj/MPI_scatter.o obj/cmd_line_args.o
+exec/MPI_scatter: obj/MPI_scatter.o obj/helper_functions.o
 	@echo "\nLinking Scatter..."
-	${MPICXX} ${obj}MPI_scatter.o ${obj}cmd_line_args.o ${OFLAGS} ${exec}MPI_scatter
+	${MPICXX} ${obj}MPI_scatter.o ${obj}helper_functions.o ${OFLAGS} ${exec}MPI_scatter
 
 obj/MPI_scatter.o: ${src}MPI_scatter.cpp
 	@echo "\nCompiling Scatter..."
 	${MPICXX} ${CFLAGS} ${src}MPI_scatter.cpp ${OFLAGS} ${obj}MPI_scatter.o
 
 ################## MPI_BCAST ################## 
-exec/MPI_bcast: ${obj}MPI_bcast.o obj/cmd_line_args.o
+exec/MPI_bcast: ${obj}MPI_bcast.o obj/helper_functions.o
 	@echo "\nLinking Broadcast..."
-	${MPICXX} ${obj}MPI_bcast.o ${obj}cmd_line_args.o ${OFLAGS} ${exec}MPI_bcast
+	${MPICXX} ${obj}MPI_bcast.o ${obj}helper_functions.o ${OFLAGS} ${exec}MPI_bcast
 
 obj/MPI_bcast.o: ${src}MPI_bcast.cpp
 	@echo "\nCompiling Broadcast..."

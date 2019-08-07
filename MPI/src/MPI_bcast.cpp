@@ -1,7 +1,7 @@
 #include <iostream>
 #include <unistd.h>
 #include "/usr/include/mpi/mpi.h"
-#include "cmd_line_args.h"
+#include "helper_functions.h"
 
 #define BCAST_SUCCESS 10
 
