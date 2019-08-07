@@ -19,6 +19,17 @@ typedef std::vector<int>::iterator intVecIter;
 typedef std::unique_ptr<intVec> uPtr_intVec;
 typedef std::shared_ptr<intVec> sPtr_intVec;
 
+/*
+ * This function handles the command line arguments.
+ * We suppose that user can define: 
+ * 1. sendbuf size	( -size n 				)
+ * 2. sender		( -sender n 			)
+ * 3. recipients	( -recv "n1,n2,n3, ..."	)
+ * 4. #messages 	( -messages n 			)
+ * 
+ * A unique ptr to a vector of ints is returned which is
+ * the list of recipients of the messages.
+ */
 uPtr_intVec handle_command_line_args(int argc, char **argv, int *array_size, int *sender, int *messages)
 {
 	int world_size = MPI::COMM_WORLD.Get_size();
@@ -28,12 +39,11 @@ uPtr_intVec handle_command_line_args(int argc, char **argv, int *array_size, int
 		if (i + 1 != argc)
 		{
 			if (strcmp(argv[i], "-sender") == 0)
-			{ // This is your parameter name
-				*sender =
-					std::stoi(argv[i + 1]); // The next value in the array is your value
-				if (*sender >= world_size)
+			{									  // This is your parameter name
+				*sender = std::stoi(argv[i + 1]); // The next value in the array is your value
+				if (*sender >= world_size || *sender < 0)
 				{
-					std::cerr << "Very large proc id for sender" << std::endl;
+					std::cerr << "Invalid proc id for sender" << std::endl;
 					MPI::COMM_WORLD.Abort(-1);
 				}
 				else
@@ -63,7 +73,7 @@ uPtr_intVec handle_command_line_args(int argc, char **argv, int *array_size, int
 				}
 			}
 			else if (strcmp(argv[i], "-messages") == 0)
-			{ // This is your parameter name
+			{										// This is your parameter name
 				*messages = std::stoi(argv[i + 1]); // The next value in the array is your value
 				if (*messages <= 0)
 				{
@@ -116,6 +126,10 @@ uPtr_intVec handle_command_line_args(int argc, char **argv, int *array_size, int
 	return std::move(recv);
 }
 
+/*
+ * This function fills a given array with numbers 
+ * according to this: a[n]=n 
+ */
 void fill_array(int *array, int array_size)
 {
 	for (int i = 0; i < array_size; ++i)
@@ -123,6 +137,11 @@ void fill_array(int *array, int array_size)
 		array[i] = i;
 	}
 }
+
+/*
+ * This function creates a vector of ints
+ * generated from a given string 
+ */
 
 uPtr_intVec string_to_vec(std::string myStr)
 {
@@ -138,4 +157,25 @@ uPtr_intVec string_to_vec(std::string myStr)
 	}
 
 	return std::move(myVec);
+}
+
+/*
+ * Given a vector of ints and an integer k, this function
+ * generates the same vector with the only change being 
+ * that k is in front
+ */
+
+uPtr_intVec reorder_vec(sPtr_intVec old_vec, int *sender)
+{
+	uPtr_intVec new_vec(new intVec);
+
+	new_vec->push_back(sender); //move sender to first position
+
+	for (intVecIter it = old_vec->begin(); it != old_vec->end(); ++it)
+	{	// append everything else
+		if (*it != *sender)
+			new_vec->push_back(*it);
+	}
+
+	return std::move(new_vec);
 }

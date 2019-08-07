@@ -25,3 +25,4 @@ typedef std::shared_ptr<intVec> sPtr_intVec;
 void fill_array(int *array, int array_size);
 uPtr_intVec string_to_vec(std::string myStr);
 uPtr_intVec handle_command_line_args(int argc, char **argv, int *array_size, int *sender, int *messages);
+uPtr_intVec reorder_vec(sPtr_intVec old_vec, int *sender);
