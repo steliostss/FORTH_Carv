@@ -30,7 +30,9 @@ typedef std::shared_ptr<intVec> sPtr_intVec;
  * A unique ptr to a vector of ints is returned which is
  * the list of recipients of the messages.
  */
-uPtr_intVec handle_command_line_args(int argc, char **argv, int *array_size, int *sender, int *messages)
+uPtr_intVec handle_command_line_args(int argc, char **argv,
+									 int *array_size, int *sender,
+									 int *messages, int *method)
 {
 	int world_size = MPI::COMM_WORLD.Get_size();
 	uPtr_intVec recv(new intVec);
@@ -46,11 +48,7 @@ uPtr_intVec handle_command_line_args(int argc, char **argv, int *array_size, int
 					std::cerr << "Invalid proc id for sender" << std::endl;
 					MPI::COMM_WORLD.Abort(-1);
 				}
-				else
-				{
-					// std::cout << "Sender is: " << *sender << std::endl;
-					i++; // Move to the next flag
-				}
+				i++; // Move to the next flag
 			}
 			else if (strcmp(argv[i], "-size") == 0)
 			{
@@ -65,12 +63,12 @@ uPtr_intVec handle_command_line_args(int argc, char **argv, int *array_size, int
 			else if (strcmp(argv[i], "-recv") == 0)
 			{
 				std::string recip = argv[i + 1];
-				i++;
 				for (int j = 0; j < world_size; ++j)
 				{
 					// std::cout << recip << std::endl;
 					recv = string_to_vec(recip);
 				}
+				i++;
 			}
 			else if (strcmp(argv[i], "-messages") == 0)
 			{										// This is your parameter name
@@ -80,11 +78,19 @@ uPtr_intVec handle_command_line_args(int argc, char **argv, int *array_size, int
 					std::cerr << "Very small number for messages" << std::endl;
 					MPI::COMM_WORLD.Abort(-1);
 				}
+				i++; // Move to the next flag
+			}
+			else if (strcmp(argv[i], "-method") == 0)
+			{
+				if (strcmp(argv[i + 1], "simple") == 0)
+					*method = SIMPLE_SEND;
+				else if (strcmp(argv[i + 1], "optimized") == 0)
+					*method = OPTIMIZED_SEND;
 				else
 				{
-					// std::cout << "#messages is: " << *messages << std::endl;
-					i++; // Move to the next flag
+					std::cerr << "Invalid Send method" << std::endl;
 				}
+				i++
 			}
 		}
 	}
@@ -110,6 +116,16 @@ uPtr_intVec handle_command_line_args(int argc, char **argv, int *array_size, int
 			if (i != *sender)
 				recv->push_back(i);
 		}
+	}
+	if(*messages < 0)
+	{ // Messeges not defined in command line
+		// std::cout << "Default messages are 100." << std::endl;
+		*messages = 100;
+	}
+	if(*method < 0)
+	{ // Method not defined in command line
+		// std::cout << "Default method is simple." << std::endl;
+		*method = SIMPLE_SEND;
 	}
 
 	// std::cout << "Recipients = ";
@@ -142,7 +158,6 @@ void fill_array(int *array, int array_size)
  * This function creates a vector of ints
  * generated from a given string 
  */
-
 uPtr_intVec string_to_vec(std::string myStr)
 {
 	uPtr_intVec myVec(new intVec);
@@ -164,7 +179,6 @@ uPtr_intVec string_to_vec(std::string myStr)
  * generates the same vector with the only change being 
  * that k is in front
  */
-
 uPtr_intVec reorder_vec(sPtr_intVec old_vec, int *sender)
 {
 	uPtr_intVec new_vec(new intVec);
@@ -172,7 +186,7 @@ uPtr_intVec reorder_vec(sPtr_intVec old_vec, int *sender)
 	new_vec->push_back(*sender); //move sender to first position
 
 	for (intVecIter it = old_vec->begin(); it != old_vec->end(); ++it)
-	{	// append everything else
+	{ // append everything else
 		if (*it != *sender)
 			new_vec->push_back(*it);
 	}

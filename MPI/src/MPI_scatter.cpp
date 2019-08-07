@@ -28,8 +28,10 @@ int main(int argc, char **argv)
 
   int array_size = -1;
   int sender = -1;
-  int messages (0);
-  sPtr_intVec recv = handle_command_line_args(argc, argv, &array_size, &sender, &messages);
+  int messages (-1);
+  int method(-1);
+
+  sPtr_intVec recv = handle_command_line_args(argc, argv, &array_size, &sender, &messages, &method);
 
   int* Ssend_array(new int[array_size]);
   fill_array(Ssend_array, array_size);
