@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include "helper_functions.h"
+#include <bits/stdc++.h>
 
 /*************************************************
  ****************** TYPEDEF **********************
@@ -21,11 +22,12 @@ typedef std::shared_ptr<intVec> sPtr_intVec;
 
 /*
  * This function handles the command line arguments.
- * We suppose that user can define: 
+ * We suppose that user can ~optionally~ define: 
  * 1. sendbuf size	( -size n 				)
  * 2. sender		( -sender n 			)
  * 3. recipients	( -recv "n1,n2,n3, ..."	)
  * 4. #messages 	( -messages n 			)
+ * 5. method		( -method n				)
  * 
  * A unique ptr to a vector of ints is returned which is
  * the list of recipients of the messages.
@@ -89,8 +91,9 @@ uPtr_intVec handle_command_line_args(int argc, char **argv,
 				else
 				{
 					std::cerr << "Invalid Send method" << std::endl;
+					MPI::COMM_WORLD.Abort(-1);
 				}
-				i++
+				i++;
 			}
 		}
 	}
@@ -117,12 +120,12 @@ uPtr_intVec handle_command_line_args(int argc, char **argv,
 				recv->push_back(i);
 		}
 	}
-	if(*messages < 0)
+	if (*messages < 0)
 	{ // Messeges not defined in command line
 		// std::cout << "Default messages are 100." << std::endl;
 		*messages = 100;
 	}
-	if(*method < 0)
+	if (*method < 0)
 	{ // Method not defined in command line
 		// std::cout << "Default method is simple." << std::endl;
 		*method = SIMPLE_SEND;
@@ -192,4 +195,15 @@ uPtr_intVec reorder_vec(sPtr_intVec old_vec, int *sender)
 	}
 
 	return std::move(new_vec);
+}
+
+/*
+ * This function defines the smallest power of 2 
+ * less than or equal to n
+ * Complexity O(logn)
+ */
+int highestPowerof2(int n)
+{
+	int p = (int)log2(n);
+	return (int)pow(2, p);
 }

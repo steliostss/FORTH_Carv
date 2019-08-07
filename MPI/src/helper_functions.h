@@ -6,6 +6,7 @@
 #include <ostream>
 #include <string>
 #include <vector>
+#include <bits/stdc++.h>
 
 /*************************************************
  ****************** TYPEDEF **********************
@@ -28,3 +29,4 @@ void fill_array(int *array, int array_size);
 uPtr_intVec string_to_vec(std::string myStr);
 uPtr_intVec handle_command_line_args(int argc, char **argv, int *array_size, int *sender, int *messages, int* method);
 uPtr_intVec reorder_vec(sPtr_intVec old_vec, int *sender);
+int highestPowerof2(int n);
