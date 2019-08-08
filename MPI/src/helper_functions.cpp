@@ -13,12 +13,12 @@
  ****************** TYPEDEF **********************
  *************************************************/
 
-typedef std::unique_ptr<int[]> uPtr_int;
-typedef std::shared_ptr<int[]> sPtr_int;
-typedef std::vector<int> intVec;
-typedef std::vector<int>::iterator intVecIter;
-typedef std::unique_ptr<intVec> uPtr_intVec;
-typedef std::shared_ptr<intVec> sPtr_intVec;
+using uPtr_int 		= std::unique_ptr<int[]>;
+using sPtr_int 		= std::shared_ptr<int[]>;
+using intVec 		= std::vector<int>;
+using intVecIter	= std::vector<int>::iterator;
+using uPtr_intVec 	= std::unique_ptr<intVec>;
+using sPtr_intVec	= std::shared_ptr<intVec>;
 
 /*
  * This function handles the command line arguments.
